@@ -1,0 +1,39 @@
+version: '3.8'
+
+networks:
+  ssrf-test:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana.ini:/etc/grafana/grafana.ini
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    networks:
+      ssrf-test:
+        ipv4_address: 172.20.0.2
+    restart: unless-stopped
+
+  test-server:
+    image: python:3.9-slim
+    networks:
+      ssrf-test:
+        ipv4_address: 172.20.0.3
+    volumes:
+      - ./server.py:/app/server.py
+    working_dir: /app
+    command: sh -c "pip install flask && python server.py"
+    ports:
+      - "8000:8000"
+
+volumes:
+  grafana-storage:
